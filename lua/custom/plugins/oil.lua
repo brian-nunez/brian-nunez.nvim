@@ -11,6 +11,10 @@ return {
     lazy = false,
     config = function()
       require('oil').setup {
+        view_options = {
+          -- Show files and directories that start with "."
+          show_hidden = true,
+        },
         float = {
           -- Padding around the floating window
           padding = 5,
