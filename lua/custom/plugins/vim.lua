@@ -105,4 +105,25 @@ vim.keymap.set('n', 'k', 'kzz')
 vim.keymap.set('n', '<leader>dir', vim.cmd.Ex)
 vim.keymap.set('n', '<leader>format', '=ap')
 
+vim.filetype.add {
+  extension = {
+    ino = 'arduino',
+    pde = 'arduino',
+  },
+}
+
+vim.env.PATH = vim.env.PATH .. ':/opt/homebrew/bin/arduino-cli'
+
+-- Arduino Specific
+
+-- Compile for Specific Board
+vim.keymap.set('n', '<leader>ac', function()
+  vim.cmd '!arduino-cli compile -b arduino:renesas_uno:unor4wifi .'
+end, { desc = 'Arduino Compile' })
+
+-- Upload to Specific Board
+vim.keymap.set('n', '<leader>au', function()
+  vim.cmd '!arduino-cli upload -p /dev/cu.usbmodem64E83369C8B82 -b arduino:renesas_uno:unor4wifi .'
+end, { desc = 'Arduino Upload' })
+
 return {}

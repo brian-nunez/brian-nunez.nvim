@@ -106,14 +106,27 @@ return {
           -- When you move your cursor, the highlights will be cleared (the second autocommand).
           local client = vim.lsp.get_client_by_id(event.data.client_id)
           if client and client.server_capabilities.documentHighlightProvider then
+            local highlight_group = vim.api.nvim_create_augroup('kickstart-lsp-highlight-' .. event.buf, { clear = false })
+
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+              group = highlight_group,
               buffer = event.buf,
-              callback = vim.lsp.buf.document_highlight,
+              callback = function()
+                for _, c in ipairs(vim.lsp.get_clients { bufnr = event.buf }) do
+                  if c.server_capabilities.documentHighlightProvider then
+                    vim.lsp.buf.document_highlight()
+                    return
+                  end
+                end
+              end,
             })
 
             vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+              group = highlight_group,
               buffer = event.buf,
-              callback = vim.lsp.buf.clear_references,
+              callback = function()
+                vim.lsp.buf.clear_references()
+              end,
             })
           end
         end,
@@ -136,6 +149,45 @@ return {
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
+        clangd = {
+          filetypes = { 'c', 'cpp', 'objc', 'objcpp' },
+          cmd = {
+            'clangd',
+            '--background-index',
+            '--clang-tidy',
+            '--header-insertion=iwyu',
+          },
+        },
+
+        arduino_language_server = {
+          filetypes = { 'arduino' },
+          capabilities = (function()
+            local c = vim.deepcopy(capabilities)
+            c.workspace = c.workspace or {}
+            c.workspace.semanticTokens = c.workspace.semanticTokens or {}
+            c.workspace.semanticTokens.refreshSupport = false
+            c.textDocument = c.textDocument or {}
+            c.textDocument.semanticTokens = nil
+            return c
+          end)(),
+          cmd = function()
+            local mason = vim.fn.stdpath 'data' .. '/mason/bin'
+            local home = vim.fn.expand '~'
+
+            return {
+              mason .. '/arduino-language-server',
+              '-cli-config',
+              home .. '/Library/Arduino15/arduino-cli.yaml',
+              '-cli',
+              'arduino-cli',
+              '-clangd',
+              mason .. '/clangd',
+              '-fqbn',
+              'arduino:renesas_uno:unor4wifi',
+            }
+          end,
+        },
+
         -- clangd = {},
         -- gopls = {},
         -- pyright = {},
@@ -204,6 +256,8 @@ return {
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format lua code
+        'clangd',
+        'arduino-language-server',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -211,10 +265,12 @@ return {
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for tsserver)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+
+            if type(server.cmd) == 'function' then
+              server.cmd = server.cmd()
+            end
+
             require('lspconfig')[server_name].setup(server)
           end,
         },
