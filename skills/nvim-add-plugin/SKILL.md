@@ -11,7 +11,7 @@ description: Add or update a plugin in this Neovim configuration with appropriat
 - Keep startup fast through deliberate lazy loading.
 - Do not recreate `custom`, `kickstart`, Mason, or NERDTree configuration.
 - Preserve existing features, mappings, and plugin behavior unless the user explicitly requests a replacement or removal.
-- Support macOS ARM64 and Ubuntu Desktop 24 AMD64 when external software is involved.
+- Support macOS ARM64, Ubuntu Desktop 24 AMD64, and Omarchy x86_64 when external software is involved.
 
 ## Inspect Before Editing
 

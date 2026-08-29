@@ -197,6 +197,13 @@ check_java() {
   required_missing=$((required_missing + 1))
 }
 
+is_omarchy() {
+  [[ "${ID:-}" == 'omarchy' ]] || {
+    [[ "${ID:-}" == 'arch' ]] &&
+      [[ -d /usr/share/omarchy || -d "$HOME/.local/share/omarchy" || -d "$HOME/.config/omarchy" ]]
+  }
+}
+
 detect_platform() {
   local kernel architecture
 
@@ -213,15 +220,19 @@ detect_platform() {
         # shellcheck disable=SC1091
         source /etc/os-release
       fi
-      if [[ "${ID:-}" != 'ubuntu' || "${VERSION_ID:-}" != 24.* ]]; then
-        printf '%s[unsupported]%s Expected Ubuntu 24 AMD64; detected %s %s.\n' "$RED" "$RESET" "${PRETTY_NAME:-Linux}" "$architecture"
+      if is_omarchy; then
+        platform='omarchy-x86_64'
+        platform_name='Omarchy x86_64'
+      elif [[ "${ID:-}" == 'ubuntu' && "${VERSION_ID:-}" == 24.* ]]; then
+        platform='ubuntu24-amd64'
+        platform_name="${PRETTY_NAME:-Ubuntu 24} AMD64"
+      else
+        printf '%s[unsupported]%s Supported Linux platforms are Ubuntu Desktop 24 AMD64 and Omarchy x86_64; detected %s %s.\n' "$RED" "$RESET" "${PRETTY_NAME:-Linux}" "$architecture"
         exit 2
       fi
-      platform='ubuntu24-amd64'
-      platform_name="${PRETTY_NAME:-Ubuntu 24} AMD64"
       ;;
     *)
-      printf '%s[unsupported]%s Supported platforms are macOS ARM64 and Ubuntu 24 AMD64; detected %s %s.\n' "$RED" "$RESET" "$kernel" "$architecture"
+      printf '%s[unsupported]%s Supported platforms are macOS ARM64, Ubuntu Desktop 24 AMD64, and Omarchy x86_64; detected %s %s.\n' "$RED" "$RESET" "$kernel" "$architecture"
       exit 2
       ;;
   esac
@@ -264,14 +275,17 @@ check_arduino() {
   fi
 }
 
-check_linux_dialout() {
-  if id -nG | tr ' ' '\n' | grep -qx 'dialout'; then
-    printf '%s[ok]%s %-28s dialout\n' "$GREEN" "$RESET" 'Arduino serial permissions'
+check_linux_serial_group() {
+  local group=$1
+  local install_command=$2
+
+  if id -nG | tr ' ' '\n' | grep -qx "$group"; then
+    printf '%s[ok]%s %-28s %s\n' "$GREEN" "$RESET" 'Arduino serial permissions' "$group"
     return
   fi
 
-  printf '%s[missing]%s Membership in the dialout group is required for Arduino uploads.\n' "$RED" "$RESET"
-  print_install 'sudo usermod -aG dialout "$USER" && printf "Log out and back in to apply the new group.\\n"'
+  printf '%s[missing]%s Membership in the %s group is required for Arduino uploads.\n' "$RED" "$RESET" "$group"
+  print_install "$install_command"
   required_missing=$((required_missing + 1))
 }
 
@@ -373,7 +387,7 @@ check_ubuntu() {
   check_required jdtls 'Java language server' "$jdtls_install" || true
 
   check_arduino "$HOME/.arduino15/arduino-cli.yaml"
-  check_linux_dialout
+  check_linux_serial_group 'dialout' 'sudo usermod -aG dialout "$USER" && printf "Log out and back in to apply the new group.\\n"'
 
   print_header 'Optional plugin tools'
   check_optional wl-copy 'Wayland clipboard' 'sudo apt-get update && sudo apt-get install -y wl-clipboard'
@@ -383,6 +397,62 @@ check_ubuntu() {
   check_optional zathura 'Zathura PDF viewer' 'sudo apt-get update && sudo apt-get install -y zathura'
 }
 
+check_omarchy() {
+  local go_bin jdtls_install
+
+  jdtls_install="archive=\"\$(mktemp)\" && temp_dir=\"\$(mktemp -d)\" && install_dir=\"\$HOME/.local/opt/jdtls-$JDTLS_VERSION\" && mkdir -p \"\$HOME/.local/opt\" \"\$HOME/.local/bin\" && curl -fL https://download.eclipse.org/jdtls/milestones/$JDTLS_VERSION/$JDTLS_ARCHIVE -o \"\$archive\" && printf '$JDTLS_SHA256  %s\\n' \"\$archive\" | sha256sum -c - && tar -xzf \"\$archive\" -C \"\$temp_dir\" && rm -rf \"\$install_dir\" && mv \"\$temp_dir\" \"\$install_dir\" && ln -sfn \"\$install_dir/bin/jdtls\" \"\$HOME/.local/bin/jdtls\" && rm -f \"\$archive\""
+
+  print_header 'Core tools'
+  check_required pacman 'pacman' 'Omarchy requires pacman; repair the base system before continuing' || true
+  check_neovim 'sudo pacman -Syu --needed neovim'
+  check_required git 'Git' 'sudo pacman -Syu --needed git' || true
+  check_required make 'Make' 'sudo pacman -Syu --needed make' || true
+  check_required cc 'C compiler' 'sudo pacman -Syu --needed gcc' || true
+  check_required unzip 'Unzip' 'sudo pacman -Syu --needed unzip' || true
+  check_required curl 'curl' 'sudo pacman -Syu --needed curl' || true
+  check_required rg 'ripgrep' 'sudo pacman -Syu --needed ripgrep' || true
+  check_required go 'Go' 'sudo pacman -Syu --needed go' || true
+  check_required python3 'Python 3' 'sudo pacman -Syu --needed python' || true
+  check_required bash 'Bash' 'sudo pacman -Syu --needed bash' || true
+  check_node 'sudo pacman -Syu --needed nodejs npm'
+  check_required npm 'npm' 'sudo pacman -Syu --needed npm' || true
+  check_java 'sudo pacman -Syu --needed jdk21-openjdk && sudo archlinux-java set java-21-openjdk'
+  check_required javac 'Java compiler' 'sudo pacman -Syu --needed jdk21-openjdk' || true
+  check_path_directory "$HOME/.local/bin" "$HOME/.bashrc"
+
+  if command -v go >/dev/null 2>&1; then
+    go_bin=$(go env GOBIN 2>/dev/null || true)
+    if [[ -z "$go_bin" ]]; then
+      go_bin="$(go env GOPATH)/bin"
+    fi
+    check_path_directory "$go_bin" "$HOME/.bashrc"
+  fi
+
+  print_header 'Language servers and formatter'
+  check_required clangd 'clangd' 'sudo pacman -Syu --needed clang' || true
+  check_required gopls 'gopls' 'sudo pacman -Syu --needed gopls' || true
+  check_required lua-language-server 'lua-language-server' 'sudo pacman -Syu --needed lua-language-server' || true
+  check_required stylua 'StyLua' 'sudo pacman -Syu --needed stylua' || true
+  check_required arduino-cli 'Arduino CLI' 'sudo pacman -Syu --needed arduino-cli' || true
+  check_required arduino-language-server 'Arduino language server' 'sudo pacman -Syu --needed arduino-language-server' || true
+  check_required dlv 'Delve debugger' 'sudo pacman -Syu --needed delve' || true
+  check_required pyright-langserver 'Pyright language server' 'sudo pacman -Syu --needed pyright' || true
+  check_required typescript-language-server 'TypeScript/JavaScript server' 'sudo pacman -Syu --needed typescript-language-server' || true
+  check_required tsc 'TypeScript compiler' 'sudo pacman -Syu --needed typescript' || true
+  check_required bash-language-server 'Bash language server' 'sudo pacman -Syu --needed bash-language-server' || true
+  check_required jdtls 'Java language server' "$jdtls_install" || true
+
+  check_arduino "$HOME/.arduino15/arduino-cli.yaml"
+  check_linux_serial_group 'uucp' 'sudo usermod -aG uucp "$USER" && printf "Log out and back in to apply the new group.\\n"'
+
+  print_header 'Optional plugin tools'
+  check_optional wl-copy 'Wayland clipboard' 'sudo pacman -Syu --needed wl-clipboard'
+  check_optional tinygo 'TinyGo' 'sudo pacman -Syu --needed tinygo'
+  check_optional templ 'templ formatter' 'go install github.com/a-h/templ/cmd/templ@latest'
+  check_optional latexmk 'LaTeX compiler' 'sudo pacman -Syu --needed texlive-binextra texlive-latexextra'
+  check_optional zathura 'Zathura PDF viewer' 'sudo pacman -Syu --needed zathura zathura-pdf-mupdf'
+}
+
 detect_platform
 printf '%sNeovim dependency check%s\n' "$BOLD" "$RESET"
 printf 'Platform: %s\n' "$platform_name"
@@ -390,6 +460,7 @@ printf 'Platform: %s\n' "$platform_name"
 case "$platform" in
   macos-arm64) check_macos ;;
   ubuntu24-amd64) check_ubuntu ;;
+  omarchy-x86_64) check_omarchy ;;
 esac
 
 print_header 'Summary'

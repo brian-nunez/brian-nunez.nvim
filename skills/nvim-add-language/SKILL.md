@@ -10,7 +10,7 @@ description: Add or update language support in this Neovim configuration, includ
 - Support Neovim 0.11.5 or newer through `vim.lsp.config()` and `vim.lsp.enable()`.
 - Keep language servers and formatters installed at the system or user level and available on `PATH`.
 - Do not add Mason.
-- Support macOS ARM64 and Ubuntu Desktop 24 AMD64.
+- Support macOS ARM64, Ubuntu Desktop 24 AMD64, and Omarchy x86_64.
 - Preserve every existing language, mapping, completion capability, Arduino integration, and debugging feature unless the user explicitly requests removal.
 
 ## Inspect Before Editing
@@ -40,7 +40,7 @@ description: Add or update language support in this Neovim configuration, includ
 
 ## Keep Dependencies Reproducible
 
-- Add required runtimes and executables to `check-dependencies.sh` for both supported platforms.
+- Add required runtimes and executables to `check-dependencies.sh` for every supported platform.
 - Check minimum runtime versions when the server requires them.
 - Print a complete installation command for each missing dependency.
 - Add required executables to `lua/config/health.lua`.
