@@ -1,4 +1,13 @@
-local servers = { 'arduino_language_server', 'clangd', 'gopls', 'lua_ls' }
+local servers = {
+  'arduino_language_server',
+  'bashls',
+  'clangd',
+  'gopls',
+  'jdtls',
+  'lua_ls',
+  'pyright',
+  'ts_ls',
+}
 
 local function executable(name)
   local path = vim.fn.exepath(name)
@@ -8,6 +17,17 @@ end
 local function arduino_config_file()
   local data_directory = vim.fn.has 'macunix' == 1 and '~/Library/Arduino15' or '~/.arduino15'
   return vim.fn.expand(data_directory .. '/arduino-cli.yaml')
+end
+
+local function start_jdtls(dispatchers, config)
+  local root_dir = config.root_dir or vim.fn.getcwd()
+  local project_name = vim.fs.basename(root_dir)
+  local workspace_hash = vim.fn.sha256(root_dir):sub(1, 12)
+  local workspace_dir = string.format('%s/jdtls/%s-%s', vim.fn.stdpath 'cache', project_name, workspace_hash)
+
+  vim.fn.mkdir(workspace_dir, 'p')
+
+  return vim.lsp.rpc.start({ 'jdtls', '-data', workspace_dir }, dispatchers)
 end
 
 local function get_clangd()
@@ -112,6 +132,44 @@ local function setup_lsp()
         completeUnimported = true,
         usePlaceholders = true,
       },
+    },
+  })
+
+  vim.lsp.config('pyright', {
+    cmd = { 'pyright-langserver', '--stdio' },
+    filetypes = { 'python' },
+    root_markers = { 'pyrightconfig.json', 'pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', 'Pipfile', '.git' },
+    settings = {
+      python = {
+        analysis = {
+          autoImportCompletions = true,
+          diagnosticMode = 'openFilesOnly',
+          typeCheckingMode = 'basic',
+        },
+      },
+    },
+  })
+
+  vim.lsp.config('ts_ls', {
+    cmd = { 'typescript-language-server', '--stdio' },
+    filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' },
+    root_markers = { 'tsconfig.json', 'jsconfig.json', 'package.json', '.git' },
+  })
+
+  vim.lsp.config('bashls', {
+    cmd = { 'bash-language-server', 'start' },
+    filetypes = { 'bash', 'sh' },
+    root_markers = { '.git' },
+  })
+
+  vim.lsp.config('jdtls', {
+    cmd = start_jdtls,
+    filetypes = { 'java' },
+    root_markers = {
+      { 'gradlew', 'mvnw' },
+      { 'build.gradle', 'build.gradle.kts', 'pom.xml' },
+      { 'settings.gradle', 'settings.gradle.kts' },
+      '.git',
     },
   })
 

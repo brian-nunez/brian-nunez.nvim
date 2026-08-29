@@ -4,8 +4,13 @@ set -u
 set -o pipefail
 
 readonly MINIMUM_NVIM_VERSION='0.11.5'
+readonly MINIMUM_NODE_VERSION='20.0.0'
+readonly MINIMUM_JAVA_VERSION='21'
 readonly ARDUINO_CLI_VERSION='1.5.1'
 readonly ARDUINO_LS_VERSION='0.7.7'
+readonly JDTLS_VERSION='1.60.0'
+readonly JDTLS_ARCHIVE='jdt-language-server-1.60.0-202606262232.tar.gz'
+readonly JDTLS_SHA256='e94c303d8198f977930803582738771fd18c52c5492878410bf222b1aa81ef1d'
 readonly LUA_LS_VERSION='3.18.2'
 readonly STYLUA_VERSION='2.5.2'
 readonly ARDUINO_CORE='arduino:renesas_uno'
@@ -139,6 +144,59 @@ check_neovim() {
   required_missing=$((required_missing + 1))
 }
 
+check_node() {
+  local install_command=$1
+  local resolved_path version
+
+  resolved_path=$(command -v node 2>/dev/null || true)
+  if [[ -z "$resolved_path" ]]; then
+    printf '%s[missing]%s Node.js %s or newer is required.\n' "$RED" "$RESET" "$MINIMUM_NODE_VERSION"
+    print_install "$install_command"
+    required_missing=$((required_missing + 1))
+    return
+  fi
+
+  version=$(node --version 2>/dev/null)
+  version=${version#v}
+  if version_at_least "$version" "$MINIMUM_NODE_VERSION"; then
+    printf '%s[ok]%s %-28s %s (%s)\n' "$GREEN" "$RESET" 'Node.js' "$resolved_path" "$version"
+    return
+  fi
+
+  printf '%s[outdated]%s Node.js %s is installed; %s or newer is required.\n' "$RED" "$RESET" "$version" "$MINIMUM_NODE_VERSION"
+  print_install "$install_command"
+  required_missing=$((required_missing + 1))
+}
+
+check_java() {
+  local install_command=$1
+  local resolved_path version major
+
+  resolved_path=$(command -v java 2>/dev/null || true)
+  if [[ -z "$resolved_path" ]]; then
+    printf '%s[missing]%s Java %s or newer is required.\n' "$RED" "$RESET" "$MINIMUM_JAVA_VERSION"
+    print_install "$install_command"
+    required_missing=$((required_missing + 1))
+    return
+  fi
+
+  version=$(java -version 2>&1 | awk -F'"' 'NR == 1 { print $2 }')
+  major=${version%%.*}
+  if [[ "$major" == '1' ]]; then
+    major=${version#*.}
+    major=${major%%.*}
+  fi
+
+  if [[ "$major" =~ ^[0-9]+$ ]] && (( major >= MINIMUM_JAVA_VERSION )); then
+    printf '%s[ok]%s %-28s %s (%s)\n' "$GREEN" "$RESET" 'Java runtime' "$resolved_path" "$version"
+    return
+  fi
+
+  printf '%s[outdated]%s Java %s is installed; Java %s or newer is required.\n' "$RED" "$RESET" "${version:-unknown}" "$MINIMUM_JAVA_VERSION"
+  print_install "$install_command"
+  required_missing=$((required_missing + 1))
+}
+
 detect_platform() {
   local kernel architecture
 
@@ -229,6 +287,12 @@ check_macos() {
   check_required unzip 'Unzip' 'xcode-select --install' || true
   check_required rg 'ripgrep' 'brew install ripgrep' || true
   check_required go 'Go' 'brew install go' || true
+  check_required python3 'Python 3' 'brew install python' || true
+  check_required bash 'Bash' 'brew install bash' || true
+  check_node 'brew install node'
+  check_required npm 'npm' 'brew install node' || true
+  check_java 'brew install openjdk@21 && printf '\''\nexport PATH="%s/bin:$PATH"\n'\'' "$(brew --prefix openjdk@21)" >> "$HOME/.zprofile"'
+  check_required javac 'Java compiler' 'brew install openjdk@21' || true
 
   if command -v go >/dev/null 2>&1; then
     go_bin=$(go env GOBIN 2>/dev/null || true)
@@ -246,6 +310,11 @@ check_macos() {
   check_required arduino-cli 'Arduino CLI' 'brew install arduino-cli' || true
   check_required arduino-language-server 'Arduino language server' "go install github.com/arduino/arduino-language-server@$ARDUINO_LS_VERSION" || true
   check_required dlv 'Delve debugger' 'go install github.com/go-delve/delve/cmd/dlv@latest' || true
+  check_required pyright-langserver 'Pyright language server' 'npm install -g pyright' || true
+  check_required typescript-language-server 'TypeScript/JavaScript server' 'npm install -g typescript-language-server typescript' || true
+  check_required tsc 'TypeScript compiler' 'npm install -g typescript' || true
+  check_required bash-language-server 'Bash language server' 'npm install -g bash-language-server' || true
+  check_required jdtls 'Java language server' 'brew install jdtls' || true
 
   check_arduino "$HOME/Library/Arduino15/arduino-cli.yaml"
 
@@ -257,11 +326,12 @@ check_macos() {
 }
 
 check_ubuntu() {
-  local go_bin luals_install nvim_install stylua_install
+  local go_bin jdtls_install luals_install nvim_install stylua_install
 
   nvim_install='archive="$(mktemp)" && mkdir -p "$HOME/.local/opt" "$HOME/.local/bin" && curl -fL https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -o "$archive" && tar -xzf "$archive" -C "$HOME/.local/opt" && ln -sfn "$HOME/.local/opt/nvim-linux-x86_64/bin/nvim" "$HOME/.local/bin/nvim" && rm -f "$archive"'
   luals_install="archive=\"\$(mktemp)\" && mkdir -p \"\$HOME/.local/opt/lua-language-server\" \"\$HOME/.local/bin\" && curl -fL https://github.com/LuaLS/lua-language-server/releases/download/$LUA_LS_VERSION/lua-language-server-$LUA_LS_VERSION-linux-x64.tar.gz -o \"\$archive\" && tar -xzf \"\$archive\" -C \"\$HOME/.local/opt/lua-language-server\" && printf '#!/bin/sh\\nexec \"%s/bin/lua-language-server\" \"\$@\"\\n' \"\$HOME/.local/opt/lua-language-server\" > \"\$HOME/.local/bin/lua-language-server\" && chmod 0755 \"\$HOME/.local/bin/lua-language-server\" && rm -f \"\$archive\""
   stylua_install="archive=\"\$(mktemp)\" && temp_dir=\"\$(mktemp -d)\" && mkdir -p \"\$HOME/.local/bin\" && curl -fL https://github.com/JohnnyMorganz/StyLua/releases/download/v$STYLUA_VERSION/stylua-linux-x86_64.zip -o \"\$archive\" && unzip -q \"\$archive\" -d \"\$temp_dir\" && install -m 0755 \"\$temp_dir/stylua\" \"\$HOME/.local/bin/stylua\" && rm -f \"\$archive\" && rm -rf \"\$temp_dir\""
+  jdtls_install="archive=\"\$(mktemp)\" && temp_dir=\"\$(mktemp -d)\" && install_dir=\"\$HOME/.local/opt/jdtls-$JDTLS_VERSION\" && mkdir -p \"\$HOME/.local/opt\" \"\$HOME/.local/bin\" && curl -fL https://download.eclipse.org/jdtls/milestones/$JDTLS_VERSION/$JDTLS_ARCHIVE -o \"\$archive\" && printf '$JDTLS_SHA256  %s\\n' \"\$archive\" | sha256sum -c - && tar -xzf \"\$archive\" -C \"\$temp_dir\" && rm -rf \"\$install_dir\" && mv \"\$temp_dir\" \"\$install_dir\" && ln -sfn \"\$install_dir/bin/jdtls\" \"\$HOME/.local/bin/jdtls\" && rm -f \"\$archive\""
 
   print_header 'Core tools'
   check_neovim "$nvim_install"
@@ -272,6 +342,12 @@ check_ubuntu() {
   check_required curl 'curl' 'sudo apt-get update && sudo apt-get install -y curl' || true
   check_required rg 'ripgrep' 'sudo apt-get update && sudo apt-get install -y ripgrep' || true
   check_required go 'Go' 'sudo apt-get update && sudo apt-get install -y golang-go' || true
+  check_required python3 'Python 3' 'sudo apt-get update && sudo apt-get install -y python3' || true
+  check_required bash 'Bash' 'sudo apt-get update && sudo apt-get install -y bash' || true
+  check_node 'sudo snap install node --classic --channel=22'
+  check_required npm 'npm' 'sudo snap install node --classic --channel=22' || true
+  check_java 'sudo apt-get update && sudo apt-get install -y openjdk-21-jdk'
+  check_required javac 'Java compiler' 'sudo apt-get update && sudo apt-get install -y openjdk-21-jdk' || true
   check_path_directory "$HOME/.local/bin" "$HOME/.bashrc"
 
   if command -v go >/dev/null 2>&1; then
@@ -290,6 +366,11 @@ check_ubuntu() {
   check_required arduino-cli 'Arduino CLI' "curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=\"\$HOME/.local/bin\" sh -s $ARDUINO_CLI_VERSION" || true
   check_required arduino-language-server 'Arduino language server' "go install github.com/arduino/arduino-language-server@$ARDUINO_LS_VERSION" || true
   check_required dlv 'Delve debugger' 'go install github.com/go-delve/delve/cmd/dlv@latest' || true
+  check_required pyright-langserver 'Pyright language server' 'npm install -g pyright' || true
+  check_required typescript-language-server 'TypeScript/JavaScript server' 'npm install -g typescript-language-server typescript' || true
+  check_required tsc 'TypeScript compiler' 'npm install -g typescript' || true
+  check_required bash-language-server 'Bash language server' 'npm install -g bash-language-server' || true
+  check_required jdtls 'Java language server' "$jdtls_install" || true
 
   check_arduino "$HOME/.arduino15/arduino-cli.yaml"
   check_linux_dialout

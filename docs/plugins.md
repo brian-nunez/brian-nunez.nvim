@@ -63,6 +63,7 @@
   - Lua: `stylua`.
   - Templ: `templ`.
 - All other supported buffers use LSP formatting as the fallback.
+- Native LSP support is enabled for Arduino, Bash, C/C++, Go, Java, JavaScript, Lua, Python, and TypeScript.
 
 ## Debugging
 
