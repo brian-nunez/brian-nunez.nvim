@@ -1,0 +1,41 @@
+-- This is used for my local testing with a local model.
+-- Unused, but useful as a reference.
+return {
+  -- 'milanglacier/minuet-ai.nvim',
+  -- dependencies = {
+  --   'nvim-lua/plenary.nvim',
+  -- },
+  --
+  -- config = function()
+  --   require('minuet').setup {
+  --     provider = 'openai_fim_compatible',
+  --     provider_options = {
+  --       openai_fim_compatible = {
+  --         api_key = 'TERM',
+  --         model = 'codegemma:2b',
+  --         end_point = 'http://localhost:11434/v1/completions',
+  --         name = 'Ollama',
+  --         stream = true,
+  --         template = {
+  --           prompt = function(pref, suff)
+  --             return '<|fim_prefix|>' .. pref .. '<|fim_suffix|>' .. suff .. '<|fim_middle|>'
+  --           end,
+  --           suffix = function(suff)
+  --             return suff
+  --           end,
+  --         },
+  --       },
+  --     },
+  --     virtualtext = {
+  --       auto_trigger_ft = { '*' },
+  --       keymap = {
+  --         accept = '<A-A>',
+  --         accept_line = '<A-a>',
+  --         prev = '<A-[>',
+  --         next = '<A-]>',
+  --         dismiss = '<A-e>',
+  --       },
+  --     },
+  --   }
+  -- end,
+}
