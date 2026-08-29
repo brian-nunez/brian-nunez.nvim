@@ -1,36 +1,55 @@
-# My NeoVim Configuration
+# Neovim Configuration
 
-## Pre-requisites
+- Production configuration for Neovim 0.11.5 or newer.
+- Supported systems:
+  - macOS on Apple Silicon.
+  - Ubuntu Desktop 24.04 on AMD64.
+- Uses Neovim's built-in LSP configuration API.
+- Uses system-installed language servers and formatters.
+- Does not use Mason or NERDTree.
+- Uses `lazy.nvim` for plugin management and `oil.nvim` for file browsing.
 
-Make sure you have NeoVim installed on your system. This configuration was tested with the following version:
+## Documentation
 
-```bash
-NVIM v0.10.4
-Build type: Release
-LuaJIT 2.1.1741730670
-```
+- [Installation and external software](docs/installation.md)
+- [Plugin inventory and key mappings](docs/plugins.md)
 
-External Requirements:
-- Basic utils: `git`, `make`, `unzip`, C Compiler (`gcc`)
-- [ripgrep](https://github.com/BurntSushi/ripgrep#installation)
-- Clipboard tool (xclip/xsel/win32yank or other depending on the platform)
-- A [Nerd Font](https://www.nerdfonts.com/): optional, provides various icons
-  - if you have it set `vim.g.have_nerd_font` in `lua/custom/plugins/vim.lua` to true
-- Language Setup:
-  - If you want to write Typescript, you need `npm`
-  - If you want to write Golang, you will need `go`
-
-## Installation
-
-Location of the configuration:
-
-| OS | PATH |
-| :- | :--- |
-| Linux, MacOS | `$XDG_CONFIG_HOME/nvim`, `~/.config/nvim` |
-| Windows      | On your own                               |
+## Quick Start
 
 ```bash
-git clone --branch v0.0.2 --single-branch git@github.com:brian-nunez/my-nvim.nvim.git
-cd my-nvim.nvim
-git checkout -b v0.0.2-branch
+cd ~/.config/nvim
+./check-dependencies.sh
+nvim
 ```
+
+- Run `:Lazy` after startup to inspect plugin status.
+- Run `:checkhealth config` to verify Neovim and external executables.
+- Run `:checkhealth vim.lsp` inside a project to inspect LSP clients.
+
+## Layout
+
+```text
+.
+├── init.lua
+├── check-dependencies.sh
+├── lazy-lock.json
+├── docs/
+│   ├── installation.md
+│   └── plugins.md
+└── lua/
+    ├── config/
+    │   ├── autocmds.lua
+    │   ├── health.lua
+    │   ├── keymaps.lua
+    │   └── options.lua
+    └── plugins/
+        └── *.lua
+```
+
+## Maintenance
+
+- Add plugin specs under `lua/plugins/`.
+- Keep external tools on `PATH` before starting Neovim.
+- Update plugins through `:Lazy`.
+- Update Tree-sitter parsers through `:TSUpdate`.
+- Keep `lazy-lock.json` committed to preserve reproducible plugin versions.

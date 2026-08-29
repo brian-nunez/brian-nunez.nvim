@@ -1,5 +1,9 @@
 return {
-  'tpope/vim-rhubarb',
+  {
+    'tpope/vim-rhubarb',
+    cmd = 'GBrowse',
+    dependencies = 'tpope/vim-fugitive',
+  },
   {
     'github/copilot.vim',
     enabled = false,
