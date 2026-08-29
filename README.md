@@ -4,6 +4,7 @@
 - Supported systems:
   - macOS on Apple Silicon.
   - Ubuntu Desktop 24.04 on AMD64.
+  - Omarchy x86_64.
 - Uses Neovim's built-in LSP configuration API.
 - Uses system-installed language servers and formatters.
 - Does not use Mason or NERDTree.

@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | macOS | Apple Silicon ARM64 | `~/.config/nvim` |
 | Ubuntu Desktop 24.04 | AMD64/x86_64 | `~/.config/nvim` |
+| Omarchy | x86_64 | `~/.config/nvim` |
 
 ## Automated Verification
 
@@ -20,7 +21,7 @@ cd ~/.config/nvim
   - Detects the supported operating system and architecture.
   - Verifies required executables and minimum Neovim version.
   - Verifies the Arduino CLI configuration and Uno R4 platform core.
-  - Verifies Ubuntu serial-port permissions.
+  - Verifies Linux serial-port permissions.
   - Reports optional tools used by feature-specific plugins.
   - Prints an installation command for every missing item.
   - Does not install or modify software.
@@ -153,6 +154,42 @@ printf '\nexport PATH="$HOME/.local/bin:%s/bin:$PATH"\n' "$(go env GOPATH)" >> "
 sudo usermod -aG dialout "$USER"
 ```
 
+## Omarchy x86_64
+
+- Omarchy is Arch-based and uses `pacman`.
+- Perform a full system upgrade while installing required repository packages:
+
+```bash
+sudo pacman -Syu --needed \
+  arduino-cli arduino-language-server bash bash-language-server clang curl \
+  delve gcc git go gopls jdk21-openjdk lua-language-server make neovim \
+  nodejs npm pyright python ripgrep stylua typescript \
+  typescript-language-server unzip
+```
+
+- Select Java 21 when another installed JDK is the current default:
+
+```bash
+sudo archlinux-java set java-21-openjdk
+```
+
+- JDTLS is not currently available from the official Arch package repository.
+- Run `./check-dependencies.sh` and use its checksum-verified JDTLS installation command.
+- Add local and Go binaries to `PATH`:
+
+```bash
+printf '\nexport PATH="$HOME/.local/bin:%s/bin:$PATH"\n' "$(go env GOPATH)" >> "$HOME/.bashrc"
+```
+
+- Grant Arduino serial-port access, then log out and back in:
+
+```bash
+sudo usermod -aG uucp "$USER"
+```
+
+- Omarchy may report `ID=omarchy` or inherit `ID=arch` from its Arch base.
+- The checker recognizes either form when Omarchy installation directories are present.
+
 ## Arduino Uno R4 WiFi
 
 - Create the Arduino CLI configuration:
@@ -184,15 +221,15 @@ export ARDUINO_PORT=/dev/cu.usbmodem1101
 
 ## Optional Feature Software
 
-| Software | Feature | macOS ARM64 | Ubuntu 24.04 AMD64 |
-| --- | --- | --- | --- |
-| Nerd Font | Plugin and status-line icons | Install a font from [Nerd Fonts](https://www.nerdfonts.com/) | Install a font from [Nerd Fonts](https://www.nerdfonts.com/) |
-| TinyGo | `tinygo.nvim` embedded Go commands | `brew install tinygo` | Follow [TinyGo Linux installation](https://tinygo.org/getting-started/install/linux/) |
-| `latexmk` | VimTeX compilation | `brew install --cask mactex-no-gui` | `sudo apt-get install -y latexmk texlive` |
-| PDF viewer | VimTeX preview and synchronization | `brew install --cask skim` | `sudo apt-get install -y zathura` |
-| Wayland clipboard | System clipboard on Ubuntu Wayland | Built into macOS | `sudo apt-get install -y wl-clipboard` |
-| `templ` | Formatting `.templ` files through Conform | `go install github.com/a-h/templ/cmd/templ@latest` | Same command |
-| Discord desktop | Rich presence through `presence.nvim` | Install Discord when desired | Install Discord when desired |
+| Software | Feature | macOS ARM64 | Ubuntu 24.04 AMD64 | Omarchy x86_64 |
+| --- | --- | --- | --- | --- |
+| Nerd Font | Plugin and status-line icons | Install a font from [Nerd Fonts](https://www.nerdfonts.com/) | Install a font from [Nerd Fonts](https://www.nerdfonts.com/) | Use an installed Omarchy Nerd Font |
+| TinyGo | `tinygo.nvim` embedded Go commands | `brew install tinygo` | Follow [TinyGo Linux installation](https://tinygo.org/getting-started/install/linux/) | `sudo pacman -Syu --needed tinygo` |
+| `latexmk` | VimTeX compilation | `brew install --cask mactex-no-gui` | `sudo apt-get install -y latexmk texlive` | `sudo pacman -Syu --needed texlive-binextra texlive-latexextra` |
+| PDF viewer | VimTeX preview and synchronization | `brew install --cask skim` | `sudo apt-get install -y zathura` | `sudo pacman -Syu --needed zathura zathura-pdf-mupdf` |
+| Wayland clipboard | System clipboard | Built into macOS | `sudo apt-get install -y wl-clipboard` | `sudo pacman -Syu --needed wl-clipboard` |
+| `templ` | Formatting `.templ` files through Conform | `go install github.com/a-h/templ/cmd/templ@latest` | Same command | Same command |
+| Discord desktop | Rich presence through `presence.nvim` | Install Discord when desired | Install Discord when desired | Use the Omarchy application installer when desired |
 
 ## Language Servers
 
@@ -233,6 +270,7 @@ command -v nvim rg go python3 node npm java javac clangd gopls pyright-langserve
 
 - Restart the terminal after changing shell startup files.
 - On Ubuntu, log out and back in after adding the user to `dialout`.
+- On Omarchy, log out and back in after adding the user to `uucp`.
 - On macOS, place Homebrew and Go paths in `~/.zprofile` so GUI-launched and login-shell Neovim sessions resolve the same tools.
 
 ## Upstream Installation References
@@ -241,3 +279,5 @@ command -v nvim rg go python3 node npm java javac clangd gopls pyright-langserve
 - [TypeScript Language Server installation](https://github.com/typescript-language-server/typescript-language-server)
 - [Bash Language Server installation](https://github.com/bash-lsp/bash-language-server)
 - [Eclipse JDTLS requirements and installation](https://github.com/eclipse-jdtls/eclipse.jdt.ls)
+- [Omarchy](https://github.com/basecamp/omarchy)
+- [Arch Linux packages](https://archlinux.org/packages/)
