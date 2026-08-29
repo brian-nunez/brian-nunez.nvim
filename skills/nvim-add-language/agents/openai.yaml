@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nvim Add Language"
+  short_description: "Add native LSP language support"

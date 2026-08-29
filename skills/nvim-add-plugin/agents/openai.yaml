@@ -1,0 +1,3 @@
+interface:
+  display_name: "Nvim Add Plugin"
+  short_description: "Add a lazy-loaded Neovim plugin"

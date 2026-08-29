@@ -36,6 +36,11 @@ nvim
 ├── docs/
 │   ├── installation.md
 │   └── plugins.md
+├── skills/
+│   ├── nvim-add-language/
+│   │   └── SKILL.md
+│   └── nvim-add-plugin/
+│       └── SKILL.md
 └── lua/
     ├── config/
     │   ├── autocmds.lua
@@ -53,3 +58,9 @@ nvim
 - Update plugins through `:Lazy`.
 - Update Tree-sitter parsers through `:TSUpdate`.
 - Keep `lazy-lock.json` committed to preserve reproducible plugin versions.
+
+## Project Skills
+
+- Use `nvim-add-language` when adding an LSP, formatter, debugger, runtime, or other language support.
+- Use `nvim-add-plugin` when adding or updating a Neovim plugin.
+- Both skills preserve the native Neovim 0.11 architecture, cross-platform dependency checks, health checks, documentation, and lazy-loading conventions used by this repository.
