@@ -1,17 +1,49 @@
 local parsers = {
+  'arduino',
+  'astro',
   'bash',
   'c',
+  'cpp',
+  'css',
+  'csv',
   'diff',
+  'dockerfile',
+  'git_config',
+  'gitcommit',
+  'gitignore',
   'go',
+  'gomod',
+  'gosum',
+  'gowork',
+  'hcl',
   'html',
+  'ini',
+  'java',
+  'javascript',
+  'json',
   'lua',
   'luadoc',
+  'make',
   'markdown',
   'markdown_inline',
+  'nginx',
+  'php',
   'python',
   'query',
+  'requirements',
+  'ruby',
+  'sql',
+  'ssh_config',
+  'templ',
+  'terraform',
+  'toml',
+  'tsv',
+  'tsx',
+  'typescript',
   'vim',
   'vimdoc',
+  'xml',
+  'yaml',
 }
 
 return {
@@ -21,22 +53,14 @@ return {
     lazy = false,
     build = ':TSUpdate',
     config = function()
-      local treesitter = require 'nvim-treesitter'
-
-      -- During a branch migration, Lazy can load the legacy module before it
-      -- checks out the rewritten main branch. Avoid calling the new API until
-      -- it is actually available; the next Neovim start will use main.
-      if type(treesitter.install) == 'function' then
-        treesitter.install(parsers)
-      else
-        vim.notify('Restart Neovim to finish the nvim-treesitter main-branch migration', vim.log.levels.WARN)
-        return
-      end
+      require('nvim-treesitter').install(parsers)
 
       vim.api.nvim_create_autocmd('FileType', {
         desc = 'Enable Tree-sitter highlighting and indentation',
         callback = function(event)
-          pcall(vim.treesitter.start, event.buf)
+          if not pcall(vim.treesitter.start, event.buf) then
+            return
+          end
 
           if vim.bo[event.buf].filetype ~= 'ruby' then
             vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
