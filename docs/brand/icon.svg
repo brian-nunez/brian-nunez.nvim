@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Green rounded tile with a white N formed from two bars and a diagonal">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#57a143"/>
+      <stop offset="1" stop-color="#2f6f3e"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#tile)"/>
+  <path fill="#ffffff" d="M64 196V60h28l72 96V60h28v136h-28L92 100v96z"/>
+</svg>
